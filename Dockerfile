@@ -18,6 +18,4 @@ FROM alpine:3.16 as run
 WORKDIR /app/
 COPY --from=build /app/fhir-to-server .
 COPY --from=build /app/app.yml .
-COPY cert/RKA_Root_CA.crt /app/cert/proxy-ca.crt
-RUN cat cert/proxy-ca.crt >> /etc/ssl/certs/ca-certificates.crt
 ENTRYPOINT ["/app/fhir-to-server"]
