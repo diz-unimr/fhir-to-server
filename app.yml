@@ -1,0 +1,21 @@
+app:
+  name: fhir-to-server
+  batch-size: 1000
+  log-level: info
+
+kafka:
+  bootstrap-servers: localhost:9092
+  security-protocol: ssl
+  ssl:
+    ca-location: /app/cert/kafka-ca.pem
+    certificate-location: /app/cert/app-cert.pem
+    key-location: /app/cert/app-key.pem
+    key-password: private-key-password
+  input-topics:
+
+fhir:
+  server:
+    base-url: http://localhost/fhir
+    auth:
+      user:
+      password:

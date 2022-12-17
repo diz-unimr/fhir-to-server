@@ -1,0 +1,2 @@
+cert/*
+!cert/RKA_Root_CA.crt
