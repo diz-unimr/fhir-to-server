@@ -4,6 +4,7 @@ import (
 	"fhir-to-server/pkg/config"
 	resty "github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Client struct {
@@ -12,7 +13,14 @@ type Client struct {
 }
 
 func NewClient(config config.Fhir) *Client {
-	return &Client{rest: resty.New(), config: config}
+	client := resty.New().
+		SetLogger(log.New()).
+		SetRetryCount(config.Retry.Count).
+		SetTimeout(time.Duration(config.Retry.Timeout) * time.Second).
+		SetRetryWaitTime(time.Duration(config.Retry.Wait) * time.Second).
+		SetRetryMaxWaitTime(time.Duration(config.Retry.MaxWait) * time.Second)
+
+	return &Client{rest: client, config: config}
 }
 
 func (c *Client) Send(fhir []byte) bool {
