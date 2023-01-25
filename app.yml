@@ -1,6 +1,5 @@
 app:
   name: fhir-to-server
-  batch-size: 1000
   log-level: info
 
 kafka:

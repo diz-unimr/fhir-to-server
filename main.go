@@ -15,7 +15,7 @@ func main() {
 	configureLogger(appConfig.App)
 
 	// create consumer and subscribe to input topics
-	consumer := subscribeTo(appConfig.Kafka)
+	consumer := subscribeTo(appConfig)
 
 	// create FHIR REST client
 	client := fhir.NewClient(appConfig.Fhir)
@@ -57,16 +57,16 @@ func main() {
 	}
 }
 
-func subscribeTo(config config.Kafka) *kafka.Consumer {
+func subscribeTo(config config.AppConfig) *kafka.Consumer {
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":        config.BootstrapServers,
-		"security.protocol":        config.SecurityProtocol,
-		"ssl.ca.location":          config.Ssl.CaLocation,
-		"ssl.key.location":         config.Ssl.KeyLocation,
-		"ssl.certificate.location": config.Ssl.CertificateLocation,
-		"ssl.key.password":         config.Ssl.KeyPassword,
+		"bootstrap.servers":        config.Kafka.BootstrapServers,
+		"security.protocol":        config.Kafka.SecurityProtocol,
+		"ssl.ca.location":          config.Kafka.Ssl.CaLocation,
+		"ssl.key.location":         config.Kafka.Ssl.KeyLocation,
+		"ssl.certificate.location": config.Kafka.Ssl.CertificateLocation,
+		"ssl.key.password":         config.Kafka.Ssl.KeyPassword,
 		"broker.address.family":    "v4",
-		"group.id":                 "fhir-to-server",
+		"group.id":                 config.App.Name,
 		"enable.auto.commit":       false,
 		"auto.offset.reset":        "earliest",
 	})
@@ -75,7 +75,7 @@ func subscribeTo(config config.Kafka) *kafka.Consumer {
 		panic(err)
 	}
 
-	err = consumer.SubscribeTopics(config.InputTopics, nil)
+	err = consumer.SubscribeTopics(config.Kafka.InputTopics, nil)
 	check(err)
 
 	return consumer

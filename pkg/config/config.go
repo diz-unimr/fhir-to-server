@@ -12,9 +12,8 @@ type AppConfig struct {
 }
 
 type App struct {
-	Name      string `mapstructure:"name"`
-	BatchSize int    `mapstructure:"batch-size"`
-	LogLevel  string `mapstructure:"log-level"`
+	Name     string `mapstructure:"name"`
+	LogLevel string `mapstructure:"log-level"`
 }
 
 type Kafka struct {
