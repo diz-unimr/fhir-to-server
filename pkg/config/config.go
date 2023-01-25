@@ -31,8 +31,16 @@ type Ssl struct {
 	KeyPassword         string `mapstructure:"key-password"`
 }
 
+type Retry struct {
+	Count   int `mapstructure:"count"`
+	Timeout int `mapstructure:"timeout"`
+	Wait    int `mapstructure:"wait"`
+	MaxWait int `mapstructure:"max-wait"`
+}
+
 type Fhir struct {
 	Server Server `mapstructure:"server"`
+	Retry  Retry  `mapstructure:"retry"`
 }
 
 type Server struct {
