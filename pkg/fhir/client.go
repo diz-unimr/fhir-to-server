@@ -37,5 +37,12 @@ func (c *Client) Send(fhir []byte) bool {
 	}
 	log.WithFields(log.Fields{"status": resp.Status(), "response-body": string(resp.Body())}).Error("Error sending bundle to FHIR server")
 	return false
+}
 
+func check(err error) {
+	if err == nil {
+		return
+	}
+
+	log.Error(err)
 }
