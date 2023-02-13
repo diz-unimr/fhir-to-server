@@ -13,51 +13,60 @@ import (
 func main() {
 	appConfig := loadConfig()
 	configureLogger(appConfig.App)
-
-	// create consumer and subscribe to input topics
-	consumer := subscribeTo(appConfig)
-
-	// create FHIR REST client
-	client := fhir.NewClient(appConfig.Fhir)
-
 	// signal handler to break the loop
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	for {
-		select {
-		case sig := <-sigchan:
-			log.WithField("signal", sig).Info("Caught signal. Terminating")
-			return
+	// create FHIR REST client
+	client := fhir.NewClient(appConfig.Fhir)
 
-		default:
-			msg, err := consumer.ReadMessage(-1)
+	for _, topic := range appConfig.Kafka.InputTopics {
+		t := topic
+		go func() {
+			// create consumer and subscribe to input topics
+			consumer := subscribe(appConfig, t)
+			defer closeConsumer(consumer)
 
-			if err == nil {
-				log.WithFields(log.Fields{"key": string(msg.Key), "topic": *msg.TopicPartition.Topic}).Debug("Message received")
-				processed := client.Send(msg.Value)
+			for {
+				select {
+				case <-sigchan:
+					return
 
-				if processed {
-					offsets, err := consumer.CommitMessage(msg)
-					if err != nil {
-						log.WithError(err).Error("Failed to commit offsets. Terminating")
-						os.Exit(1)
+				default:
+					msg, err := consumer.ReadMessage(2000)
+					if err == nil {
+						processMessages(client, msg, sigchan)
+					} else {
+						if err.(kafka.Error).Code() != kafka.ErrTimedOut {
+							// The producer will automatically try to recover from all errors.
+							log.WithError(err).Error("Consumer error")
+						}
 					}
-
-					log.WithField("offsets", offsets).Trace("Offsets committed")
-				} else {
-					log.WithFields(log.Fields{"key": string(msg.Key), "topic": *msg.TopicPartition.Topic}).Error("Failed to process message. Terminating")
-					os.Exit(1)
 				}
-			} else {
-				// The client will automatically try to recover from all errors.
-				log.WithError(err).Error("Consumer error")
 			}
-		}
+		}()
+	}
+	<-sigchan
+
+	log.Info("Caught signal. Terminating")
+}
+
+func closeConsumer(consumer *kafka.Consumer) {
+	err := consumer.Close()
+	if err != nil {
+		log.Error("Failed to close consumer properly.")
 	}
 }
 
-func subscribeTo(config config.AppConfig) *kafka.Consumer {
+func processMessages(client *fhir.Client, msg *kafka.Message, sigchan chan os.Signal) {
+	success := client.Send(msg.Value)
+	if !success {
+		log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key)}).Error("Failed to send bundle to FHIR server")
+		sigchan <- syscall.SIGINT
+	}
+}
+
+func subscribe(config config.AppConfig, topic string) *kafka.Consumer {
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":        config.Kafka.BootstrapServers,
 		"security.protocol":        config.Kafka.SecurityProtocol,
@@ -67,7 +76,6 @@ func subscribeTo(config config.AppConfig) *kafka.Consumer {
 		"ssl.key.password":         config.Kafka.Ssl.KeyPassword,
 		"broker.address.family":    "v4",
 		"group.id":                 config.App.Name,
-		"enable.auto.commit":       false,
 		"auto.offset.reset":        "earliest",
 	})
 
@@ -75,7 +83,7 @@ func subscribeTo(config config.AppConfig) *kafka.Consumer {
 		panic(err)
 	}
 
-	err = consumer.SubscribeTopics(config.Kafka.InputTopics, nil)
+	err = consumer.Subscribe(topic, nil)
 	check(err)
 
 	return consumer
