@@ -72,18 +72,6 @@ func syncCommits(consumers map[*kafka.Consumer]*kafka.Message) {
 	}
 }
 
-func syncCommits2(consumer *kafka.Consumer, msg *kafka.Message) {
-	parts, err := consumer.CommitMessage(msg)
-	if err != nil {
-		return
-	}
-
-	for _, tp := range parts {
-		log.WithFields(log.Fields{"topic": *tp.Topic, "offset": tp.Offset.String()}).Trace("Offsets committed")
-	}
-
-}
-
 func closeConsumer(consumer *kafka.Consumer) {
 	err := consumer.Close()
 	if err != nil {
