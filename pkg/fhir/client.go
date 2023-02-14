@@ -31,11 +31,10 @@ func (c *Client) Send(fhir []byte) bool {
 	check(err)
 
 	if resp.IsSuccess() {
-		log.WithField("status", resp.Status()).Debug("Successfully sent bundle to FHIR server")
+		log.WithFields(log.Fields{"status": resp.Status()}).Trace("Successfully sent bundle to FHIR server")
 		log.WithField("body", string(resp.Body())).Trace("Response")
 		return true
 	}
-	log.WithFields(log.Fields{"status": resp.Status(), "response-body": string(resp.Body())}).Error("Error sending bundle to FHIR server")
 	return false
 }
 

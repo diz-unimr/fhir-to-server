@@ -20,6 +20,8 @@ func main() {
 	// create FHIR REST client
 	client := fhir.NewClient(appConfig.Fhir)
 
+	offsets := make(map[*kafka.Consumer]*kafka.Message)
+
 	for _, topic := range appConfig.Kafka.InputTopics {
 		t := topic
 		go func() {
@@ -35,7 +37,12 @@ func main() {
 				default:
 					msg, err := consumer.ReadMessage(2000)
 					if err == nil {
-						processMessages(client, msg, sigchan)
+						success := processMessages(client, msg)
+						if success {
+							offsets[consumer] = msg
+						} else {
+							sigchan <- syscall.SIGINT
+						}
 					} else {
 						if err.(kafka.Error).Code() != kafka.ErrTimedOut {
 							// The producer will automatically try to recover from all errors.
@@ -48,7 +55,33 @@ func main() {
 	}
 	<-sigchan
 
-	log.Info("Caught signal. Terminating")
+	log.Info("Caught signal. Shutting down gracefully")
+	syncCommits(offsets)
+}
+
+func syncCommits(consumers map[*kafka.Consumer]*kafka.Message) {
+	for c, msg := range consumers {
+		parts, err := c.CommitMessage(msg)
+		if err != nil {
+			return
+		}
+
+		for _, tp := range parts {
+			log.WithFields(log.Fields{"topic": *tp.Topic, "offset": tp.Offset.String()}).Trace("Offsets committed")
+		}
+	}
+}
+
+func syncCommits2(consumer *kafka.Consumer, msg *kafka.Message) {
+	parts, err := consumer.CommitMessage(msg)
+	if err != nil {
+		return
+	}
+
+	for _, tp := range parts {
+		log.WithFields(log.Fields{"topic": *tp.Topic, "offset": tp.Offset.String()}).Trace("Offsets committed")
+	}
+
 }
 
 func closeConsumer(consumer *kafka.Consumer) {
@@ -58,11 +91,14 @@ func closeConsumer(consumer *kafka.Consumer) {
 	}
 }
 
-func processMessages(client *fhir.Client, msg *kafka.Message, sigchan chan os.Signal) {
+func processMessages(client *fhir.Client, msg *kafka.Message) bool {
 	success := client.Send(msg.Value)
-	if !success {
-		log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key)}).Error("Failed to send bundle to FHIR server")
-		sigchan <- syscall.SIGINT
+	if success {
+		log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key), "offset": msg.TopicPartition.Offset.String()}).Debug("Successfully processed message")
+		return true
+	} else {
+		log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key), "offset": msg.TopicPartition.Offset.String()}).Error("Failed to process message")
+		return false
 	}
 }
 
@@ -76,6 +112,7 @@ func subscribe(config config.AppConfig, topic string) *kafka.Consumer {
 		"ssl.key.password":         config.Kafka.Ssl.KeyPassword,
 		"broker.address.family":    "v4",
 		"group.id":                 config.App.Name,
+		"enable.auto.commit":       true,
 		"auto.offset.reset":        "earliest",
 	})
 
