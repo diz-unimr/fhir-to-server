@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
@@ -20,6 +21,8 @@ func main() {
 	// create FHIR REST client
 	client := fhir.NewClient(appConfig.Fhir)
 
+	// offset per consumer
+	var mutex = &sync.RWMutex{}
 	offsets := make(map[*kafka.Consumer]*kafka.Message)
 
 	for _, topic := range appConfig.Kafka.InputTopics {
@@ -39,7 +42,9 @@ func main() {
 					if err == nil {
 						success := processMessages(client, msg)
 						if success {
+							mutex.Lock()
 							offsets[consumer] = msg
+							mutex.Unlock()
 						} else {
 							sigchan <- syscall.SIGINT
 						}
