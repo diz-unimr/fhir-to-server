@@ -59,17 +59,15 @@ func (f *DateFilter) apply(fhirData []byte) bool {
 			return true
 		}
 
-		value := element(r)
-
-		switch value.(type) {
+		switch value := element(r).(type) {
 		case nil:
 			return false
 		case *string:
-			if f.applyDateTime(value.(*string)) {
+			if f.applyDateTime(value) {
 				return true
 			}
 		case *Period:
-			if f.applyPeriod(value.(*Period)) {
+			if f.applyPeriod(value) {
 				return true
 			}
 		}
