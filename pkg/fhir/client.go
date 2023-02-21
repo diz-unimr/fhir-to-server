@@ -37,11 +37,3 @@ func (c *Client) Send(fhir []byte) bool {
 	}
 	return false
 }
-
-func check(err error) {
-	if err == nil {
-		return
-	}
-
-	log.Error(err)
-}

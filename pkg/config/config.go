@@ -37,9 +37,20 @@ type Retry struct {
 	MaxWait int `mapstructure:"max-wait"`
 }
 
+type DateConfig struct {
+	Value      string `mapstructure:"value"`
+	Comparator string `mapstructure:"comparator"`
+	Inclusive  bool   `mapstructure:"inclusive"`
+}
+
+type Filter struct {
+	Date DateConfig `mapstructure:"date"`
+}
+
 type Fhir struct {
 	Server Server `mapstructure:"server"`
 	Retry  Retry  `mapstructure:"retry"`
+	Filter Filter `mapstructure:"filter"`
 }
 
 type Server struct {
