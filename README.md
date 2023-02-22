@@ -1,6 +1,30 @@
 # fhir-to-server
 > Load FHIR🔥 bundles from a Kafka topic into a FHIR server
 
+# Filters
+
+## DateTime
+
+Consumers can filter incoming messages by date properties of FHIR resources if a `filter.value` 
+is configured with a `yyyy-mm-dd` layout (see [configuration properties](#configuration-properties)).
+
+If a filter expression matches at least one resource, the complete bundle will be processed.
+Filters apply to the following date properties:
+
+| Property            | Type     | Example resource types |
+|---------------------|----------|------------------------|
+| `effectiveDateTime` | dateTime | Observation            |
+| `performedDateTime` | dateTime | Procedure              |
+| `recordedDate`      | dateTime | Condition              |
+| `authoredOn`        | dateTime | DiagnosticReport       |
+| `effectivePeriod`   | Period   | Observation            |
+| `period`            | Period   | Encounter              |
+
+Additionally, the following `filter.comparator` values are supported: `>`,`>=`,`<`,`<=` and `=`.
+Empty or missing comparator values default to `=`, which compares only the date part of properties.
+
+> ⚠️ **NOTE** Patient resources will never be applied to filter rules and are always processed.
+
 ## Concurrency
 
 In order to enable Multi-threaded message consumption **one consumer per input topic** is used. 
@@ -43,6 +67,8 @@ FHIR resource types are currently not validated. Processing requires only valid 
 | `fhir.retry.timeout`             | 10                         | Retry timeout                           |
 | `fhir.retry.wait`                | 5                          | Retry wait between retries              |
 | `fhir.retry.max-wait`            | 20                         | Retry maximum wait                      |
+| `fhir.filter.date.value`         |                            | Date with format `yyyy-mm-dd`           |
+| `fhir.filter.date.comparator`    |                            | One of: `>`,`>=`,`<`,`<=`,`=`           |
 
 ### Environment variables
 

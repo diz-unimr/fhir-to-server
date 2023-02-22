@@ -1,8 +1,11 @@
 package config
 
 import (
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
+	"reflect"
 	"strings"
+	"time"
 )
 
 type AppConfig struct {
@@ -37,9 +40,19 @@ type Retry struct {
 	MaxWait int `mapstructure:"max-wait"`
 }
 
+type DateConfig struct {
+	Value      *time.Time `mapstructure:"value"`
+	Comparator string     `mapstructure:"comparator"`
+}
+
+type Filter struct {
+	Date DateConfig `mapstructure:"date"`
+}
+
 type Fhir struct {
 	Server Server `mapstructure:"server"`
 	Retry  Retry  `mapstructure:"retry"`
+	Filter Filter `mapstructure:"filter"`
 }
 
 type Server struct {
@@ -65,6 +78,37 @@ func LoadConfig(path string) (config AppConfig, err error) {
 		return
 	}
 
-	err = viper.Unmarshal(&config)
+	decoderOpts := func(m *mapstructure.DecoderConfig) {
+		m.DecodeHook = mapstructure.ComposeDecodeHookFunc(
+			StringToTimeHookFunc(),
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+		)
+	}
+
+	err = viper.Unmarshal(&config, decoderOpts)
 	return
+}
+
+func StringToTimeHookFunc() mapstructure.DecodeHookFunc {
+	loc, _ := time.LoadLocation("Europe/Berlin")
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if t != reflect.TypeOf(time.Time{}) {
+			return data, nil
+		}
+
+		switch f.Kind() {
+		case reflect.String:
+			return time.ParseInLocation("2006-01-02", data.(string), loc)
+		case reflect.Float64:
+			return time.Unix(0, int64(data.(float64))*int64(time.Millisecond)), nil
+		case reflect.Int64:
+			return time.Unix(0, data.(int64)*int64(time.Millisecond)), nil
+		default:
+			return data, nil
+		}
+	}
 }

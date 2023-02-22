@@ -23,3 +23,7 @@ fhir:
     timeout: 10
     wait: 5
     max-wait: 20
+  filter:
+    date:
+      value: # example: "2020-06-15"
+      comparator: # example: ">="

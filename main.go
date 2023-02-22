@@ -18,8 +18,8 @@ func main() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	// create FHIR REST client
-	client := fhir.NewClient(appConfig.Fhir)
+	// create processor
+	processor := fhir.NewProcessor(appConfig.Fhir)
 
 	// offset per consumer
 	var mutex = &sync.RWMutex{}
@@ -40,7 +40,7 @@ func main() {
 				default:
 					msg, err := consumer.ReadMessage(2000)
 					if err == nil {
-						success := processMessages(client, msg)
+						success := processor.ProcessMessage(msg)
 						if success {
 							mutex.Lock()
 							offsets[consumer] = msg
@@ -81,17 +81,6 @@ func closeConsumer(consumer *kafka.Consumer) {
 	err := consumer.Close()
 	if err != nil {
 		log.Error("Failed to close consumer properly.")
-	}
-}
-
-func processMessages(client *fhir.Client, msg *kafka.Message) bool {
-	success := client.Send(msg.Value)
-	if success {
-		log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key), "offset": msg.TopicPartition.Offset.String()}).Debug("Successfully processed message")
-		return true
-	} else {
-		log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key), "offset": msg.TopicPartition.Offset.String()}).Error("Failed to process message")
-		return false
 	}
 }
 
