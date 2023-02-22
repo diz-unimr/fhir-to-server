@@ -15,6 +15,8 @@ RUN GOOS=linux GOARCH=amd64 go build -v -tags musl
 
 FROM alpine:3.16 as run
 
+RUN apk add --no-progress --no-cache tzdata
+
 WORKDIR /app/
 COPY --from=build /app/fhir-to-server .
 COPY --from=build /app/app.yml .
