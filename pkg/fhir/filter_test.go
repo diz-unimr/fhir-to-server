@@ -4,15 +4,20 @@ import (
 	"fhir-to-server/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
+var loc *time.Location
+
 func TestApply(t *testing.T) {
+	loc, _ = time.LoadLocation("Europe/Berlin")
+
 	for scenario, fn := range map[string]func(t *testing.T){
 		"Patient valid": testApplyPassesPatient,
 		"DiagnosticReport.effectiveDatetime valid": testApplyFilterValidDiagnosticReport,
 		"Procedure.recordedDate skip":              testApplyFilterSkipProcedureRecorded,
 		"Encounter.Period valid":                   testApplyFilterValidEncounterPeriod,
-		"Condition.period skip non-inclusive":      testApplyFilterSkipConditionNonInclusive,
+		"Condition.period valid inclusive":         testApplyFilterValidConditionInclusive,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			fn(t)
@@ -22,7 +27,7 @@ func TestApply(t *testing.T) {
 
 func testApplyFilterValidDiagnosticReport(t *testing.T) {
 	t.Parallel()
-	conf := config.DateConfig{Value: "2018-03-01", Comparator: ">"}
+	conf := config.DateConfig{Value: createTime("2018-03-01"), Comparator: ">"}
 	f := NewDateFilter(conf)
 	testBundle := []byte(`
 {
@@ -46,7 +51,7 @@ func testApplyFilterValidDiagnosticReport(t *testing.T) {
 
 func testApplyFilterSkipProcedureRecorded(t *testing.T) {
 	t.Parallel()
-	conf := config.DateConfig{Value: "2018-03-01", Comparator: "<"}
+	conf := config.DateConfig{Value: createTime("2018-03-01"), Comparator: "<"}
 	f := NewDateFilter(conf)
 	testBundle := []byte(`
 {
@@ -70,7 +75,7 @@ func testApplyFilterSkipProcedureRecorded(t *testing.T) {
 
 func testApplyPassesPatient(t *testing.T) {
 	t.Parallel()
-	conf := config.DateConfig{Value: "2018-03-01", Comparator: ">"}
+	conf := config.DateConfig{Value: createTime("2018-03-01"), Comparator: ">"}
 	f := NewDateFilter(conf)
 	testBundle := []byte(`
 {
@@ -93,7 +98,7 @@ func testApplyPassesPatient(t *testing.T) {
 
 func testApplyFilterValidEncounterPeriod(t *testing.T) {
 	t.Parallel()
-	conf := config.DateConfig{Value: "2018-03-01", Comparator: ">"}
+	conf := config.DateConfig{Value: createTime("2018-03-01"), Comparator: ">"}
 	f := NewDateFilter(conf)
 	testBundle := []byte(`
 {
@@ -118,9 +123,9 @@ func testApplyFilterValidEncounterPeriod(t *testing.T) {
 		"to pass the filter (Date: %s, Comparator: %s) but it didn't", conf.Value, conf.Comparator)
 }
 
-func testApplyFilterSkipConditionNonInclusive(t *testing.T) {
+func testApplyFilterValidConditionInclusive(t *testing.T) {
 	t.Parallel()
-	conf := config.DateConfig{Value: "2018-03-01", Comparator: ">", Inclusive: false}
+	conf := config.DateConfig{Value: createTime("2018-03-01"), Comparator: "="}
 	f := NewDateFilter(conf)
 	testBundle := []byte(`
 {
@@ -138,6 +143,11 @@ func testApplyFilterSkipConditionNonInclusive(t *testing.T) {
 `)
 
 	passed := f.apply(testBundle)
-	assert.Falsef(t, passed, "Expected bundle (Condition.recordedDate: 2018-03-01T00:00:00+01:00) "+
-		"to be skipped by the filter (Date: %s, Comparator: %s, Inclusive: %t) but wasn't", conf.Value, conf.Comparator, conf.Inclusive)
+	assert.Truef(t, passed, "Expected bundle (Condition.recordedDate: 2018-03-01T00:00:00+01:00) "+
+		"to pass the filter (Date: %s, Comparator: %s) but it didn't", conf.Value, conf.Comparator)
+}
+
+func createTime(value string) *time.Time {
+	t, _ := time.ParseInLocation("2006-01-02", value, loc)
+	return &t
 }

@@ -69,7 +69,6 @@ func LoadConfig(path string) (config AppConfig, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigName("app")
 	viper.SetConfigType("yml")
-	//hook := viper.DecodeHook(StringToTimeHookFunc)
 
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(`.`, `_`, `-`, `_`))
