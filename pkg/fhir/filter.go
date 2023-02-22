@@ -14,18 +14,26 @@ type DateFilter struct {
 }
 
 func NewDateFilter(config config.DateConfig) *DateFilter {
-	loc, _ := time.LoadLocation("Europe/Berlin")
-	date, err := time.ParseInLocation("2006-01-02", config.Value, loc)
-	checkFatal(err)
-
 	var comp func(t time.Time) bool
-	if config.Comparator == ">" {
-		comp = date.Before
-	} else if config.Comparator == "<" {
-		comp = date.After
+	incl := false
+
+	switch config.Comparator {
+	case "", "=":
+		comp = config.Value.Equal
+		incl = true
+	case ">":
+		comp = config.Value.Before
+	case ">=":
+		comp = config.Value.Before
+		incl = true
+	case "<":
+		comp = config.Value.After
+	case "<=":
+		comp = config.Value.After
+		incl = true
 	}
 
-	return &DateFilter{Date: date, Comparator: comp, Inclusive: config.Inclusive}
+	return &DateFilter{Date: *config.Value, Comparator: comp, Inclusive: incl}
 }
 
 type ResourceTypeDto struct {
@@ -42,6 +50,7 @@ type DateTimeResource struct {
 	EffectiveDateTime *string `bson:"effectiveDateTime,omitempty" json:"effectiveDateTime,omitempty"`
 	PerformedDateTime *string `bson:"performedDateTime,omitempty" json:"performedDateTime,omitempty"`
 	RecordedDate      *string `bson:"recordedDate,omitempty" json:"recordedDate,omitempty"`
+	AuthoredOn        *string `bson:"authoredOn,omitempty" json:"authoredOn,omitempty"`
 	EffectivePeriod   *Period `bson:"effectivePeriod,omitempty" json:"effectivePeriod,omitempty"`
 	Period            *Period `bson:"period,omitempty" json:"period,omitempty"`
 }
@@ -84,6 +93,8 @@ func element(r DateTimeResource) interface{} {
 		return r.PerformedDateTime
 	case r.RecordedDate != nil:
 		return r.RecordedDate
+	case r.AuthoredOn != nil:
+		return r.AuthoredOn
 	case r.EffectivePeriod != nil:
 		return r.EffectivePeriod
 	case r.Period != nil:
@@ -99,7 +110,8 @@ func (f *DateFilter) applyDateTime(dateTime *string) bool {
 		return false
 	}
 
-	return f.Comparator(dt) || (f.Inclusive && f.Date.Equal(dt))
+	// compare equal date parts if comparison includes the date
+	return (f.Inclusive && f.Date.Year() == dt.Year() && f.Date.YearDay() == dt.YearDay()) || f.Comparator(dt)
 }
 
 func (f *DateFilter) applyPeriod(period *Period) bool {

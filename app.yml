@@ -25,6 +25,5 @@ fhir:
     max-wait: 20
   filter:
     date:
-      value: 2018-01-01
-      modifier: >
-      inclusive: true
+      value: # example: "2020-06-15"
+      comparator: # example: ">="

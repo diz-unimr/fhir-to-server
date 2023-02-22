@@ -12,13 +12,19 @@ type Processor struct {
 }
 
 func NewProcessor(config config.Fhir) *Processor {
-	return &Processor{client: NewClient(config), filter: NewDateFilter(config.Filter.Date)}
+	var filter *DateFilter
+	if config.Filter.Date.Value == nil {
+		filter = nil
+	} else {
+		filter = NewDateFilter(config.Filter.Date)
+	}
+	return &Processor{client: NewClient(config), filter: filter}
 }
 
 func (p *Processor) ProcessMessage(msg *kafka.Message) bool {
 
 	// filter
-	if !p.filter.apply(msg.Value) {
+	if p.filter != nil && !p.filter.apply(msg.Value) {
 		// filtered, don't send but mark processed
 		return true
 	}
