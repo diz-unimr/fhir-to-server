@@ -3,10 +3,11 @@ package main
 import (
 	"fhir-to-server/pkg/config"
 	"fhir-to-server/pkg/fhir"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 )
@@ -21,20 +22,31 @@ func main() {
 	// create processor
 	processor := fhir.NewProcessor(appConfig.Fhir)
 
-	// offset per consumer
-	var mutex = &sync.RWMutex{}
-	offsets := make(map[*kafka.Consumer]*kafka.Message)
+	var wg sync.WaitGroup
 
-	for _, topic := range appConfig.Kafka.InputTopics {
-		t := topic
-		go func() {
+	for i, topic := range appConfig.Kafka.InputTopics {
+
+		wg.Add(1)
+
+		go func(clientId string, topic string) {
 			// create consumer and subscribe to input topics
-			consumer := subscribe(appConfig, t)
-			defer closeConsumer(consumer)
+			consumer := subscribe(appConfig, topic)
+			log.WithFields(log.Fields{
+				"topic":     topic,
+				"group-id":  appConfig.App.Name,
+				"client-id": clientId,
+			}).Info("Consumer created")
 
 			for {
 				select {
 				case <-sigchan:
+					log.WithFields(log.Fields{
+						"client-id": clientId,
+						"topic":     topic,
+					}).Info("Consumer shutting down gracefully")
+
+					syncConsumerCommits(consumer)
+					wg.Done()
 					return
 
 				default:
@@ -42,9 +54,22 @@ func main() {
 					if err == nil {
 						success := processor.ProcessMessage(msg)
 						if success {
-							mutex.Lock()
-							offsets[consumer] = msg
-							mutex.Unlock()
+							_, err := consumer.StoreMessage(msg)
+							if err != nil {
+								log.WithFields(log.Fields{
+									"client-id": clientId,
+									"key":       string(msg.Key),
+									"topic":     *msg.TopicPartition.Topic,
+									"offset":    msg.TopicPartition.Offset.String()}).
+									Warn("Failed to commit offset for message")
+							} else {
+								log.WithFields(log.Fields{
+									"client-id": clientId,
+									"key":       string(msg.Key),
+									"topic":     *msg.TopicPartition.Topic,
+									"offset":    msg.TopicPartition.Offset.String()}).
+									Debug("Offset for message committed")
+							}
 						} else {
 							sigchan <- syscall.SIGINT
 						}
@@ -56,32 +81,38 @@ func main() {
 					}
 				}
 			}
-		}()
+		}(strconv.Itoa(i+1), topic)
 	}
 	<-sigchan
+	close(sigchan)
+	wg.Wait()
 
-	log.Info("Caught signal. Shutting down gracefully")
-	syncCommits(offsets)
+	log.Info("All consumers stopped")
 }
 
-func syncCommits(consumers map[*kafka.Consumer]*kafka.Message) {
-	for c, msg := range consumers {
-		parts, err := c.CommitMessage(msg)
-		if err != nil {
+func syncConsumerCommits(c *kafka.Consumer) {
+	err := c.Unsubscribe()
+	if err != nil {
+		log.Error("Failed to unsubscribe consumer from the current subscription")
+	}
+	parts, err := c.Commit()
+	if err != nil {
+		if err.(kafka.Error).Code() == kafka.ErrNoOffset {
 			return
 		}
+		log.WithError(err).Error("Failed to commit offsets")
+	} else {
 
 		for _, tp := range parts {
-			log.WithFields(log.Fields{"topic": *tp.Topic, "offset": tp.Offset.String()}).Trace("Offsets committed")
+			log.WithFields(log.Fields{
+				"topic":     *tp.Topic,
+				"partition": tp.Partition,
+				"offset":    tp.Offset.String()}).
+				Info("Stored offsets committed")
 		}
 	}
-}
-
-func closeConsumer(consumer *kafka.Consumer) {
-	err := consumer.Close()
-	if err != nil {
-		log.Error("Failed to close consumer properly.")
-	}
+	err = c.Close()
+	check(err)
 }
 
 func subscribe(config config.AppConfig, topic string) *kafka.Consumer {
@@ -95,6 +126,7 @@ func subscribe(config config.AppConfig, topic string) *kafka.Consumer {
 		"broker.address.family":    "v4",
 		"group.id":                 config.App.Name,
 		"enable.auto.commit":       true,
+		"enable.auto.offset.store": false,
 		"auto.offset.reset":        "earliest",
 	})
 
