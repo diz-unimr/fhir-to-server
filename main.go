@@ -29,6 +29,8 @@ func main() {
 		wg.Add(1)
 
 		go func(clientId string, topic string) {
+
+			defer wg.Done()
 			// create consumer and subscribe to input topics
 			consumer := subscribe(appConfig, topic)
 			log.WithFields(log.Fields{
@@ -46,37 +48,23 @@ func main() {
 					}).Info("Consumer shutting down gracefully")
 
 					syncConsumerCommits(consumer)
-					wg.Done()
 					return
-
 				default:
 					msg, err := consumer.ReadMessage(2000)
 					if err == nil {
+
 						success := processor.ProcessMessage(msg)
-						if success {
-							_, err := consumer.StoreMessage(msg)
-							if err != nil {
-								log.WithFields(log.Fields{
-									"client-id": clientId,
-									"key":       string(msg.Key),
-									"topic":     *msg.TopicPartition.Topic,
-									"offset":    msg.TopicPartition.Offset.String()}).
-									Warn("Failed to commit offset for message")
-							} else {
-								log.WithFields(log.Fields{
-									"client-id": clientId,
-									"key":       string(msg.Key),
-									"topic":     *msg.TopicPartition.Topic,
-									"offset":    msg.TopicPartition.Offset.String()}).
-									Debug("Offset for message committed")
+						select {
+						case <-sigchan:
+							if success {
+								storeMessage(consumer, msg, clientId)
 							}
-						} else {
-							sigchan <- syscall.SIGINT
-						}
-					} else {
-						if err.(kafka.Error).Code() != kafka.ErrTimedOut {
-							// The producer will automatically try to recover from all errors.
-							log.WithError(err).Error("Consumer error")
+						default:
+							if success {
+								storeMessage(consumer, msg, clientId)
+							} else {
+								sigchan <- syscall.SIGKILL
+							}
 						}
 					}
 				}
@@ -88,6 +76,25 @@ func main() {
 	wg.Wait()
 
 	log.Info("All consumers stopped")
+}
+
+func storeMessage(c *kafka.Consumer, msg *kafka.Message, clientId string) {
+	_, err := c.StoreMessage(msg)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"client-id": clientId,
+			"key":       string(msg.Key),
+			"topic":     *msg.TopicPartition.Topic,
+			"offset":    msg.TopicPartition.Offset.String()}).
+			Warn("Failed to commit offset for message")
+	} else {
+		log.WithFields(log.Fields{
+			"client-id": clientId,
+			"key":       string(msg.Key),
+			"topic":     *msg.TopicPartition.Topic,
+			"offset":    msg.TopicPartition.Offset.String()}).
+			Debug("Offset for message stored")
+	}
 }
 
 func syncConsumerCommits(c *kafka.Consumer) {

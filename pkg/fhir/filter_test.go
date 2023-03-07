@@ -98,7 +98,7 @@ func testApplyPassesPatient(t *testing.T) {
 
 func testApplyFilterValidEncounterPeriod(t *testing.T) {
 	t.Parallel()
-	conf := config.DateConfig{Value: createTime("2018-03-01"), Comparator: ">"}
+	conf := config.DateConfig{Value: createTime("2018-03-01"), Comparator: ">="}
 	f := NewDateFilter(conf)
 	testBundle := []byte(`
 {
