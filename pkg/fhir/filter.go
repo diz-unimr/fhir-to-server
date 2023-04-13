@@ -104,6 +104,9 @@ func element(r DateTimeResource) interface{} {
 }
 
 func (f *DateFilter) applyDateTime(dateTime *string) bool {
+	if dateTime == nil {
+		return false
+	}
 	dt, err := time.Parse(time.RFC3339, *dateTime)
 	if err != nil {
 		check(err)
