@@ -64,7 +64,7 @@ func (f *DateFilter) apply(fhirData []byte) bool {
 		err = json.Unmarshal(e.Resource, &r)
 		check(err)
 
-		if *r.Type == "Patient" {
+		if *r.Type == "Patient" || *r.Type == "Consent" {
 			return true
 		}
 
