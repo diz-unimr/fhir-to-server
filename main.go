@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -50,7 +51,7 @@ func main() {
 					syncConsumerCommits(consumer)
 					return
 				default:
-					msg, err := consumer.ReadMessage(2000)
+					msg, err := consumer.ReadMessage(1 * time.Second)
 					if err == nil {
 
 						success := processor.ProcessMessage(msg)
