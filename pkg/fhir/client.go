@@ -16,9 +16,10 @@ func NewClient(config config.Fhir) *Client {
 	client := resty.New().
 		SetLogger(log.New()).
 		SetRetryCount(config.Retry.Count).
-		SetTimeout(time.Duration(config.Retry.Timeout) * time.Second).
-		SetRetryWaitTime(time.Duration(config.Retry.Wait) * time.Second).
-		SetRetryMaxWaitTime(time.Duration(config.Retry.MaxWait) * time.Second)
+		SetTimeout(time.Duration(config.Retry.Timeout)*time.Second).
+		SetRetryWaitTime(time.Duration(config.Retry.Wait)*time.Second).
+		SetRetryMaxWaitTime(time.Duration(config.Retry.MaxWait)*time.Second).
+		SetBasicAuth(config.Server.Auth.User, config.Server.Auth.Password)
 
 	return &Client{rest: client, config: config}
 }
@@ -30,10 +31,14 @@ func (c *Client) Send(fhir []byte) bool {
 		Post(c.config.Server.BaseUrl)
 	check(err)
 
+	respLog := log.WithFields(log.Fields{"status": resp.Status(), "body": string(resp.Body())})
+	responseMsg := "FHIR server response"
 	if resp.IsSuccess() {
-		log.WithFields(log.Fields{"status": resp.Status()}).Trace("Successfully sent bundle to FHIR server")
-		log.WithField("body", string(resp.Body())).Trace("Response")
+		respLog.Debug(responseMsg)
 		return true
+	} else {
+		respLog.Error(responseMsg)
 	}
+
 	return false
 }
