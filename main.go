@@ -18,7 +18,7 @@ func main() {
 	configureLogger(appConfig.App)
 	// signal handler to break the loop
 	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
 	// create processor
 	processor := fhir.NewProcessor(appConfig.Fhir)
@@ -64,7 +64,7 @@ func main() {
 							if success {
 								storeMessage(consumer, msg, clientId)
 							} else {
-								sigchan <- syscall.SIGKILL
+								sigchan <- syscall.SIGTERM
 							}
 						}
 					}
