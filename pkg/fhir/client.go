@@ -31,14 +31,15 @@ func (c *Client) Send(fhir []byte) bool {
 		Post(c.config.Server.BaseUrl)
 	check(err)
 
-	respLog := log.WithFields(log.Fields{"status": resp.Status(), "body": string(resp.Body())})
-	responseMsg := "FHIR server response"
-	if resp.IsSuccess() {
-		respLog.Debug(responseMsg)
-		return true
-	} else {
-		respLog.Error(responseMsg)
+	if resp.RawResponse != nil {
+		respLog := log.WithFields(log.Fields{"status": resp.Status(), "body": string(resp.Body())})
+		responseMsg := "FHIR server response"
+		if resp.IsSuccess() {
+			respLog.Debug(responseMsg)
+		} else {
+			respLog.Error(responseMsg)
+		}
 	}
 
-	return false
+	return resp.IsSuccess()
 }
