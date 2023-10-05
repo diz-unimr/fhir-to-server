@@ -27,11 +27,10 @@ func main() {
 
 	for i, topic := range appConfig.Kafka.InputTopics {
 
-		wg.Add(1)
-
-		go func(clientId string, topic string) {
-
+		go func(clientId string, topic string, wg *sync.WaitGroup) {
+			wg.Add(1)
 			defer wg.Done()
+
 			// create consumer and subscribe to input topics
 			consumer := subscribe(appConfig, topic)
 			log.WithFields(log.Fields{
@@ -43,12 +42,12 @@ func main() {
 			for {
 				select {
 				case <-sigchan:
+
+					syncConsumerCommits(consumer)
 					log.WithFields(log.Fields{
 						"client-id": clientId,
 						"topic":     topic,
-					}).Info("Consumer shutting down gracefully")
-
-					syncConsumerCommits(consumer)
+					}).Info("Consumer shut down gracefully")
 					return
 				default:
 					msg, err := consumer.ReadMessage(1 * time.Second)
@@ -70,7 +69,7 @@ func main() {
 					}
 				}
 			}
-		}(strconv.Itoa(i+1), topic)
+		}(strconv.Itoa(i+1), topic, &wg)
 	}
 	<-sigchan
 	close(sigchan)
