@@ -26,9 +26,9 @@ func main() {
 	var wg sync.WaitGroup
 
 	for i, topic := range appConfig.Kafka.InputTopics {
+		wg.Add(1)
 
-		go func(clientId string, topic string, wg *sync.WaitGroup) {
-			wg.Add(1)
+		go func(clientId string, topic string) {
 			defer wg.Done()
 
 			// create consumer and subscribe to input topics
@@ -69,7 +69,7 @@ func main() {
 					}
 				}
 			}
-		}(strconv.Itoa(i+1), topic, &wg)
+		}(strconv.Itoa(i+1), topic)
 	}
 	<-sigchan
 	close(sigchan)
