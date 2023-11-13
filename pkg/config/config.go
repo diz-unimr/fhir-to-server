@@ -57,7 +57,7 @@ type Fhir struct {
 
 type Server struct {
 	BaseUrl string `mapstructure:"base-url"`
-	Auth    Auth   `mapstructure:"auth"`
+	Auth    *Auth  `mapstructure:"auth"`
 }
 
 type Auth struct {

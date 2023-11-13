@@ -16,10 +16,13 @@ func NewClient(config config.Fhir) *Client {
 	client := resty.New().
 		SetLogger(log.New()).
 		SetRetryCount(config.Retry.Count).
-		SetTimeout(time.Duration(config.Retry.Timeout)*time.Second).
-		SetRetryWaitTime(time.Duration(config.Retry.Wait)*time.Second).
-		SetRetryMaxWaitTime(time.Duration(config.Retry.MaxWait)*time.Second).
-		SetBasicAuth(config.Server.Auth.User, config.Server.Auth.Password)
+		SetTimeout(time.Duration(config.Retry.Timeout) * time.Second).
+		SetRetryWaitTime(time.Duration(config.Retry.Wait) * time.Second).
+		SetRetryMaxWaitTime(time.Duration(config.Retry.MaxWait) * time.Second)
+
+	if config.Server.Auth != nil {
+		client = client.SetBasicAuth(config.Server.Auth.User, config.Server.Auth.Password)
+	}
 
 	return &Client{rest: client, config: config}
 }
