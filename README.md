@@ -73,4 +73,8 @@ FHIR resource types are currently not validated. Processing requires only valid 
 ### Environment variables
 
 Override configuration properties by providing environment variables with their respective names.
-Upper case env variables are supported as well as underscores (`_`) instead of `.` and `-`. 
+Upper case env variables are supported as well as underscores (`_`) instead of `.` and `-`.
+
+# License
+
+[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.en.html)
