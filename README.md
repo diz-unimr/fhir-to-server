@@ -1,4 +1,5 @@
 # fhir-to-server
+![go](https://github.com/diz-unimr/fhir-to-server/actions/workflows/build.yml/badge.svg) ![docker](https://github.com/diz-unimr/fhir-to-server/actions/workflows/release.yml/badge.svg) [![codecov](https://codecov.io/github/diz-unimr/fhir-to-server/branch/main/graph/badge.svg?token=4ciJIXKAK5)](https://codecov.io/github/diz-unimr/fhir-to-server)
 > Load FHIR🔥 bundles from a Kafka topic into a FHIR server
 
 # Filters
