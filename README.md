@@ -2,9 +2,9 @@
 ![go](https://github.com/diz-unimr/fhir-to-server/actions/workflows/build.yml/badge.svg) ![docker](https://github.com/diz-unimr/fhir-to-server/actions/workflows/release.yml/badge.svg) [![codecov](https://codecov.io/github/diz-unimr/fhir-to-server/branch/main/graph/badge.svg?token=4ciJIXKAK5)](https://codecov.io/github/diz-unimr/fhir-to-server)
 > Load FHIR🔥 bundles from a Kafka topic into a FHIR server
 
-# Filters
+## Filters
 
-## DateTime
+### DateTime
 
 Consumers can filter incoming messages by date properties of FHIR resources if a `filter.value` 
 is configured with a `yyyy-mm-dd` layout (see [configuration properties](#configuration-properties)).
@@ -76,6 +76,6 @@ FHIR resource types are currently not validated. Processing requires only valid 
 Override configuration properties by providing environment variables with their respective names.
 Upper case env variables are supported as well as underscores (`_`) instead of `.` and `-`.
 
-# License
+## License
 
 [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.en.html)
