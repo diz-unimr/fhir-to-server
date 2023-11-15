@@ -60,7 +60,7 @@ FHIR resource types are currently not validated. Processing requires only valid 
 | `kafka.ssl.ca-location`          | /app/cert/kafka-ca.pem     | Kafka CA certificate location           |
 | `kafka.ssl.certificate-location` | /app/cert/app-cert.pem     | Client certificate location             |
 | `kafka.ssl.key-location`         | /app/cert/app-key.pem      | Client  key location                    |
-| `kafka.ssl.key-password`         | private-key-password       | Client key password                     |
+| `kafka.ssl.key-password`         |                            | Client key password                     |
 | `fhir.server.base-url`           | http://localhost:8080/fhir | FHIR server base URL                    |
 | `fhir.server.auth.user`          |                            | FHIR server BasicAuth username          |
 | `fhir.server.auth.password`      |                            | FHIR server BasicAuth password          |
