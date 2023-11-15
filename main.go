@@ -165,7 +165,7 @@ func loadConfig() config.AppConfig {
 }
 
 func configureLogger(config config.App) {
-	//log.SetFormatter(&log.JSONFormatter{})
+	// log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
 	level, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
