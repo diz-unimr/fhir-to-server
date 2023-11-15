@@ -1,3 +1,4 @@
+---
 name: release
 
 on:
@@ -8,6 +9,8 @@ on:
     types: [completed]
   release:
     types: [published]
+
+permissions: read-all
 
 env:
   REGISTRY: ghcr.io
