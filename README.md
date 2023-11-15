@@ -1,5 +1,5 @@
 # fhir-to-server
-[![MegaLinter](https://github.com/diz-unimr/fhir-to-server/workflows/MegaLinter/badge.svg?branch=main)](https://github.com/diz-unimr/fhir-to-server/actions?query=workflow%3AMegaLinter+branch%3Amain) ![go](https://github.com/diz-unimr/fhir-to-server/actions/workflows/build.yml/badge.svg) ![docker](https://github.com/diz-unimr/fhir-to-server/actions/workflows/release.yml/badge.svg) [![codecov](https://codecov.io/github/diz-unimr/fhir-to-server/branch/main/graph/badge.svg?token=4ciJIXKAK5)](https://codecov.io/github/diz-unimr/fhir-to-server)
+[![MegaLinter](https://github.com/diz-unimr/fhir-to-server/actions/workflows/mega-linter.yml/badge.svg)](https://github.com/diz-unimr/fhir-to-server/actions/workflows/mega-linter.yml) ![go](https://github.com/diz-unimr/fhir-to-server/actions/workflows/build.yml/badge.svg) ![docker](https://github.com/diz-unimr/fhir-to-server/actions/workflows/release.yml/badge.svg) [![codecov](https://codecov.io/github/diz-unimr/fhir-to-server/branch/main/graph/badge.svg?token=4ciJIXKAK5)](https://codecov.io/github/diz-unimr/fhir-to-server)
 > Load FHIR🔥 bundles from a Kafka topic into a FHIR server
 
 ## Filters
@@ -13,13 +13,13 @@ If a filter expression matches at least one resource, the complete bundle will b
 Filters apply to the following date properties:
 
 | Property            | Type     | Example resource types |
-|---------------------|----------|------------------------|
-| `effectiveDateTime` | dateTime | Observation            |
-| `performedDateTime` | dateTime | Procedure              |
-| `recordedDate`      | dateTime | Condition              |
-| `authoredOn`        | dateTime | DiagnosticReport       |
-| `effectivePeriod`   | Period   | Observation            |
-| `period`            | Period   | Encounter              |
+|---------------------|----------|-----------------------|
+| `effectiveDateTime` | dateTime | Observaton            |
+| `performedDateTime` | dateTime | Procedure             |
+| `recordedDate`      | dateTime | Condition             |
+| `authoredOn`        | dateTime | DiagnosticReport      |
+| `effectivePeriod`   | Period   | Observation           |
+| `period`            | Period   | Encounter             |
 
 Additionally, the following `filter.comparator` values are supported: `>`,`>=`,`<`,`<=` and `=`.
 Empty or missing comparator values default to `=`, which compares only the date part of properties.
