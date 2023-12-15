@@ -13,18 +13,18 @@ If a filter expression matches at least one resource, the complete bundle will b
 Filters apply to the following date properties:
 
 | Property            | Type     | Example resource types |
-|---------------------|----------|-----------------------|
-| `effectiveDateTime` | dateTime | Observaton            |
-| `performedDateTime` | dateTime | Procedure             |
-| `recordedDate`      | dateTime | Condition             |
-| `authoredOn`        | dateTime | DiagnosticReport      |
-| `effectivePeriod`   | Period   | Observation           |
-| `period`            | Period   | Encounter             |
+|---------------------|----------|------------------------|
+| `effectiveDateTime` | dateTime | Observation            |
+| `performedDateTime` | dateTime | Procedure              |
+| `recordedDate`      | dateTime | Condition              |
+| `authoredOn`        | dateTime | DiagnosticReport       |
+| `effectivePeriod`   | Period   | Observation            |
+| `period`            | Period   | Encounter              |
 
 Additionally, the following `filter.comparator` values are supported: `>`,`>=`,`<`,`<=` and `=`.
 Empty or missing comparator values default to `=`, which compares only the date part of properties.
 
-> ⚠️ **NOTE** Patient resources will never be applied to filter rules and are always processed.
+> ⚠️ **NOTE** Patient resources will never be subject to filter rules and are always processed.
 
 ## Concurrency
 
