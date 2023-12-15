@@ -30,7 +30,7 @@ func NewClient(config config.Fhir) *Client {
 func (c *Client) Send(fhir []byte) bool {
 	resp, err := c.rest.R().
 		SetBody(fhir).
-		SetHeader("Content-Type", "application/json+fhir").
+		SetHeader("Content-Type", "application/fhir+json").
 		Post(c.config.Server.BaseUrl)
 	check(err)
 
