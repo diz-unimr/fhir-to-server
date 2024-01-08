@@ -2,6 +2,9 @@ package fhir
 
 import (
 	"fhir-to-server/pkg/config"
+	"github.com/jarcoal/httpmock"
+	"github.com/samply/golang-fhir-models/fhir-models/fhir"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -32,4 +35,23 @@ func TestNewClient(t *testing.T) {
 		t.Errorf("Expected retry max wait time (%d) is not same as"+
 			" actual (%d)", expectedMaxWait, client.rest.RetryMaxWaitTime)
 	}
+}
+
+func TestSend(t *testing.T) {
+	const (
+		baseUrl = "https://dummy-url/fhir"
+		resp    = `"type": "transaction-response", "resourceType": "Bundle"`
+	)
+	client := NewClient(config.Fhir{Server: config.Server{BaseUrl: baseUrl}})
+
+	// set up mock
+	httpmock.ActivateNonDefault(client.rest.GetClient())
+	responder := httpmock.NewStringResponder(200, resp)
+	httpmock.RegisterResponder("POST", baseUrl, responder)
+
+	b, _ := fhir.Bundle{Type: fhir.BundleTypeTransaction}.MarshalJSON()
+
+	ok := client.Send(b)
+
+	assert.True(t, ok)
 }
