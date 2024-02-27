@@ -1,7 +1,7 @@
 package fhir
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 func check(err error) {
@@ -9,5 +9,5 @@ func check(err error) {
 		return
 	}
 
-	log.Error(err)
+	log.Error().Err(err)
 }

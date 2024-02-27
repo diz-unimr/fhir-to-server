@@ -1,6 +1,7 @@
 app:
   name: fhir-to-server
   log-level: info
+  env: production
 
 kafka:
   bootstrap-servers: localhost:9092

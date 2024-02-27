@@ -5,7 +5,8 @@ import (
 	"fhir-to-server/pkg/config"
 	"fhir-to-server/pkg/fhir"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -35,31 +36,30 @@ func main() {
 
 			// create consumer and subscribe to input topics
 			consumer := subscribe(appConfig, topic)
-			log.WithFields(log.Fields{
-				"topic":     topic,
-				"group-id":  appConfig.App.Name,
-				"client-id": clientId,
-			}).Info("Consumer created")
+			log.Info().
+				Str("topic", topic).
+				Str("group-id", appConfig.App.Name).
+				Str("client-id", clientId).Msg("Consumer created")
 
 			for {
 				select {
 				case <-sigchan:
 
 					syncConsumerCommits(consumer)
-					log.WithFields(log.Fields{
-						"client-id": clientId,
-						"topic":     topic,
-					}).Info("Consumer shut down gracefully")
+					log.Info().
+						Str("client-id", clientId).
+						Str("topic", topic).
+						Msg("Consumer shut down gracefully")
 					return
 				default:
 					msg, err := consumer.ReadMessage(1 * time.Second)
 					if err == nil {
 
-						log.WithFields(log.Fields{
-							"client-id": clientId,
-							"topic":     topic,
-							"key":       string(msg.Key),
-						}).Debug("Message received")
+						log.Debug().
+							Str("client-id", clientId).
+							Str("topic", topic).
+							Str("key", string(msg.Key)).
+							Msg("Message received")
 						success := processor.ProcessMessage(msg)
 						select {
 						case <-sigchan:
@@ -83,10 +83,10 @@ func main() {
 								continue
 							}
 
-							log.WithError(kafkaErr).WithFields(log.Fields{
-								"client-id": clientId,
-								"topic":     topic,
-							}).Error("Consumer error")
+							log.Error().Err(kafkaErr).
+								Str("client-id", clientId).
+								Str("topic", topic).
+								Msg("Consumer error")
 
 							// Exceeding 'max.poll.interval.ms' makes the client leave the consumer group
 							if kafkaErr.Code() == kafka.ErrMaxPollExceeded {
@@ -94,10 +94,11 @@ func main() {
 							}
 
 						} else {
-							log.WithError(err).WithFields(log.Fields{
-								"client-id": clientId,
-								"topic":     topic,
-							}).Fatal("Unexpected error type")
+							log.Fatal().
+								Err(kafkaErr).
+								Str("client-id", clientId).
+								Str("topic", topic).
+								Msg("Unexpected error type")
 							sigchan <- syscall.SIGTERM
 						}
 					}
@@ -109,47 +110,47 @@ func main() {
 	close(sigchan)
 	wg.Wait()
 
-	log.Info("All consumers stopped")
+	log.Info().Msg("All consumers stopped")
 }
 
 func storeMessage(c *kafka.Consumer, msg *kafka.Message, clientId string) {
 	_, err := c.StoreMessage(msg)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"client-id": clientId,
-			"key":       string(msg.Key),
-			"topic":     *msg.TopicPartition.Topic,
-			"offset":    msg.TopicPartition.Offset.String()}).
-			Warn("Failed to commit offset for message")
+		log.Warn().
+			Str("client-id", clientId).
+			Str("key", string(msg.Key)).
+			Str("topic", *msg.TopicPartition.Topic).
+			Str("offset", msg.TopicPartition.Offset.String()).
+			Msg("Failed to commit offset for message")
 	} else {
-		log.WithFields(log.Fields{
-			"client-id": clientId,
-			"key":       string(msg.Key),
-			"topic":     *msg.TopicPartition.Topic,
-			"offset":    msg.TopicPartition.Offset.String()}).
-			Debug("Offset for message stored")
+		log.Debug().
+			Str("client-id", clientId).
+			Str("key", string(msg.Key)).
+			Str("topic", *msg.TopicPartition.Topic).
+			Str("offset", msg.TopicPartition.Offset.String()).
+			Msg("Offset for message stored")
 	}
 }
 
 func syncConsumerCommits(c *kafka.Consumer) {
 	err := c.Unsubscribe()
 	if err != nil {
-		log.Error("Failed to unsubscribe consumer from the current subscription")
+		log.Error().Msg("Failed to unsubscribe consumer from the current subscription")
 	}
 	parts, err := c.Commit()
 	if err != nil {
 		if err.(kafka.Error).Code() == kafka.ErrNoOffset {
 			return
 		}
-		log.WithError(err).Error("Failed to commit offsets")
+		log.Error().Err(err).Msg("Failed to commit offsets")
 	} else {
 
 		for _, tp := range parts {
-			log.WithFields(log.Fields{
-				"topic":     *tp.Topic,
-				"partition": tp.Partition,
-				"offset":    tp.Offset.String()}).
-				Info("Stored offsets committed")
+			log.Info().
+				Str("topic", *tp.Topic).
+				Int32("partition", tp.Partition).
+				Str("offset", tp.Offset.String()).
+				Msg("Stored offsets committed")
 		}
 	}
 	err = c.Close()
@@ -186,24 +187,29 @@ func check(err error) {
 		return
 	}
 
-	log.WithError(err).Error("Terminating")
+	log.Error().Err(err).Msg("Terminating")
 	os.Exit(1)
 }
 
 func loadConfig() config.AppConfig {
 	c, err := config.LoadConfig(".")
 	if err != nil {
-		log.WithError(err).Fatal("Unable to load config file")
+		log.Fatal().Err(err).Msg("Unable to load config file")
 	}
 	return c
 }
 
-func configureLogger(config config.App) {
-	// log.SetFormatter(&log.JSONFormatter{})
-	log.SetOutput(os.Stdout)
-	level, err := log.ParseLevel(config.LogLevel)
-	if err != nil {
-		level = log.InfoLevel
+func configureLogger(appConfig config.App) {
+	// log level
+	logLevel, err := zerolog.ParseLevel(appConfig.LogLevel)
+	if err == nil {
+		zerolog.SetGlobalLevel(logLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
-	log.SetLevel(level)
+
+	// pretty logging (APP_ENV: dev)
+	if appConfig.Env == "development" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	}
 }

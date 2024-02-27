@@ -17,6 +17,7 @@ type AppConfig struct {
 type App struct {
 	Name     string `mapstructure:"name"`
 	LogLevel string `mapstructure:"log-level"`
+	Env      string `mapstructure:"env"`
 }
 
 type Kafka struct {
