@@ -28,8 +28,9 @@ func main() {
 
 	for i, topic := range appConfig.Kafka.InputTopics {
 		wg.Add(1)
+		clientId := strconv.Itoa(i + 1)
 
-		go func(clientId string, topic string) {
+		go func() {
 			defer wg.Done()
 
 			// create consumer and subscribe to input topics
@@ -102,7 +103,7 @@ func main() {
 					}
 				}
 			}
-		}(strconv.Itoa(i+1), topic)
+		}()
 	}
 	<-sigchan
 	close(sigchan)
