@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fhir-to-server/pkg/config"
 	"fhir-to-server/pkg/fhir"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -53,6 +54,11 @@ func main() {
 					msg, err := consumer.ReadMessage(1 * time.Second)
 					if err == nil {
 
+						log.WithFields(log.Fields{
+							"client-id": clientId,
+							"topic":     topic,
+							"key":       string(msg.Key),
+						}).Debug("Message received")
 						success := processor.ProcessMessage(msg)
 						select {
 						case <-sigchan:
@@ -65,6 +71,33 @@ func main() {
 							} else {
 								sigchan <- syscall.SIGTERM
 							}
+						}
+					} else {
+						var kafkaErr kafka.Error
+						if errors.As(err, &kafkaErr) {
+							// The client will automatically try to recover from all errors.
+							// Timeout is not considered an error because it is raised by
+							// ReadMessage in absence of messages.
+							if kafkaErr.IsTimeout() {
+								continue
+							}
+
+							log.WithError(kafkaErr).WithFields(log.Fields{
+								"client-id": clientId,
+								"topic":     topic,
+							}).Error("Consumer error")
+
+							// Exceeding 'max.poll.interval.ms' makes the client leave the consumer group
+							if kafkaErr.Code() == kafka.ErrMaxPollExceeded {
+								sigchan <- syscall.SIGTERM
+							}
+
+						} else {
+							log.WithError(err).WithFields(log.Fields{
+								"client-id": clientId,
+								"topic":     topic,
+							}).Fatal("Unexpected error type")
+							sigchan <- syscall.SIGTERM
 						}
 					}
 				}
