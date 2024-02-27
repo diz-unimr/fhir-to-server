@@ -3,7 +3,7 @@ package fhir
 import (
 	"fhir-to-server/pkg/config"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 type Processor struct {
@@ -31,10 +31,18 @@ func (p *Processor) ProcessMessage(msg *kafka.Message) bool {
 
 	success := p.client.Send(msg.Value)
 	if success {
-		log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key), "offset": msg.TopicPartition.Offset.String()}).Debug("Successfully processed message")
+		log.Debug().
+			Str("topic", *msg.TopicPartition.Topic).
+			Str("key", string(msg.Key)).
+			Str("offset", msg.TopicPartition.Offset.String()).
+			Msg("Successfully processed message")
 		return true
 	}
 
-	log.WithFields(log.Fields{"topic": *msg.TopicPartition.Topic, "key": string(msg.Key), "offset": msg.TopicPartition.Offset.String()}).Error("Failed to process message")
+	log.Error().
+		Str("topic", *msg.TopicPartition.Topic).
+		Str("key", string(msg.Key)).
+		Str("offset", msg.TopicPartition.Offset.String()).
+		Msg("Failed to process message")
 	return false
 }

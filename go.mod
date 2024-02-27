@@ -1,14 +1,14 @@
 module fhir-to-server
 
-go 1.21
+go 1.22
 
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.3.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/rs/zerolog v1.32.0
 	github.com/samply/golang-fhir-models/fhir-models v0.3.2
-	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 )
@@ -18,6 +18,8 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect

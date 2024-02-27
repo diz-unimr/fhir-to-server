@@ -2,8 +2,9 @@ package fhir
 
 import (
 	"fhir-to-server/pkg/config"
-	resty "github.com/go-resty/resty/v2"
-	log "github.com/sirupsen/logrus"
+	"github.com/go-resty/resty/v2"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"time"
 )
 
@@ -12,19 +13,19 @@ type Client struct {
 	config config.Fhir
 }
 
-func NewClient(config config.Fhir) *Client {
+func NewClient(fhir config.Fhir) *Client {
 	client := resty.New().
-		SetLogger(log.New()).
-		SetRetryCount(config.Retry.Count).
-		SetTimeout(time.Duration(config.Retry.Timeout) * time.Second).
-		SetRetryWaitTime(time.Duration(config.Retry.Wait) * time.Second).
-		SetRetryMaxWaitTime(time.Duration(config.Retry.MaxWait) * time.Second)
+		SetLogger(config.DefaultLogger()).
+		SetRetryCount(fhir.Retry.Count).
+		SetTimeout(time.Duration(fhir.Retry.Timeout) * time.Second).
+		SetRetryWaitTime(time.Duration(fhir.Retry.Wait) * time.Second).
+		SetRetryMaxWaitTime(time.Duration(fhir.Retry.MaxWait) * time.Second)
 
-	if config.Server.Auth != nil {
-		client = client.SetBasicAuth(config.Server.Auth.User, config.Server.Auth.Password)
+	if fhir.Server.Auth != nil {
+		client = client.SetBasicAuth(fhir.Server.Auth.User, fhir.Server.Auth.Password)
 	}
 
-	return &Client{rest: client, config: config}
+	return &Client{rest: client, config: fhir}
 }
 
 func (c *Client) Send(fhir []byte) bool {
@@ -35,13 +36,17 @@ func (c *Client) Send(fhir []byte) bool {
 	check(err)
 
 	if resp.RawResponse != nil {
-		respLog := log.WithFields(log.Fields{"status": resp.Status(), "body": string(resp.Body())})
-		responseMsg := "FHIR server response"
+
+		var logEvent *zerolog.Event
 		if resp.IsSuccess() {
-			respLog.Debug(responseMsg)
+			logEvent = log.Debug()
 		} else {
-			respLog.Error(responseMsg)
+			logEvent = log.Error()
 		}
+
+		logEvent.
+			Str("status", resp.Status()).
+			Str("body", string(resp.Body())).Msg("FHIR server response")
 	}
 
 	return resp.IsSuccess()
