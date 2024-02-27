@@ -115,21 +115,24 @@ func main() {
 
 func storeMessage(c *kafka.Consumer, msg *kafka.Message, clientId string) {
 	_, err := c.StoreMessage(msg)
+
+	var logEvent *zerolog.Event
+	var logMsg string
+
 	if err != nil {
-		log.Warn().
-			Str("client-id", clientId).
-			Str("key", string(msg.Key)).
-			Str("topic", *msg.TopicPartition.Topic).
-			Str("offset", msg.TopicPartition.Offset.String()).
-			Msg("Failed to commit offset for message")
+		logEvent = log.Warn()
+		logMsg = "Failed to commit offset for message"
 	} else {
-		log.Debug().
-			Str("client-id", clientId).
-			Str("key", string(msg.Key)).
-			Str("topic", *msg.TopicPartition.Topic).
-			Str("offset", msg.TopicPartition.Offset.String()).
-			Msg("Offset for message stored")
+		logEvent = log.Debug()
+		logMsg = "Offset for message stored"
 	}
+
+	logEvent.
+		Str("client-id", clientId).
+		Str("key", string(msg.Key)).
+		Str("topic", *msg.TopicPartition.Topic).
+		Str("offset", msg.TopicPartition.Offset.String()).
+		Msg(logMsg)
 }
 
 func syncConsumerCommits(c *kafka.Consumer) {
