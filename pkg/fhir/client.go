@@ -5,6 +5,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	models "github.com/samply/golang-fhir-models/fhir-models/fhir"
+	"strconv"
 	"time"
 )
 
@@ -35,19 +37,47 @@ func (c *Client) Send(fhir []byte) bool {
 		Post(c.config.Server.BaseUrl)
 	check(err)
 
+	// http response status
+	success := resp.IsSuccess()
+
 	if resp.RawResponse != nil {
-
-		var logEvent *zerolog.Event
-		if resp.IsSuccess() {
-			logEvent = log.Debug()
-		} else {
-			logEvent = log.Error()
-		}
-
-		logEvent.
-			Str("status", resp.Status()).
-			Str("body", string(resp.Body())).Msg("FHIR server response")
+		// http response status and FHIR response status
+		success = success && responseSuccess(resp.Body())
 	}
 
-	return resp.IsSuccess()
+	var logEvent *zerolog.Event
+	if success {
+		logEvent = log.Debug()
+	} else {
+		logEvent = log.Error()
+	}
+
+	logEvent.
+		Str("status", resp.Status()).
+		Str("body", string(resp.Body())).Msg("FHIR server response")
+
+	return success
+}
+
+func responseSuccess(body []byte) bool {
+	// check BundleEntryResponse status
+	b, err := models.UnmarshalBundle(body)
+	if err != nil {
+		check(err)
+		return false
+	}
+
+	for _, e := range b.Entry {
+		status, err := strconv.Atoi(e.Response.Status[0:3])
+
+		if err != nil || !statusSuccess(status) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func statusSuccess(status int) bool {
+	return status > 199 && status < 300
 }
