@@ -23,6 +23,16 @@ func NewProcessor(config config.Fhir) *Processor {
 
 func (p *Processor) ProcessMessage(msg *kafka.Message) bool {
 
+	if msg.Value == nil || len(msg.Value) == 0 {
+		// tombstone record
+		log.Warn().
+			Str("topic", *msg.TopicPartition.Topic).
+			Str("key", string(msg.Key)).
+			Str("offset", msg.TopicPartition.Offset.String()).
+			Msg("Tombstone record encountered. Message ignored")
+		return true
+	}
+
 	// filter
 	if p.filter != nil && !p.filter.apply(msg.Value) {
 		// filtered, don't send but mark processed

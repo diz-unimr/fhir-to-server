@@ -38,20 +38,97 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestSend(t *testing.T) {
-	const (
-		baseUrl = "https://dummy-url/fhir"
-		resp    = `"type": "transaction-response", "resourceType": "Bundle"`
-	)
-	client := NewClient(config.Fhir{Server: config.Server{BaseUrl: baseUrl}})
+	cases := []struct {
+		name     string
+		baseUrl  string
+		code     int
+		resp     string
+		expected bool
+	}{
+		{
+			name:     "success",
+			baseUrl:  "https://dummy-url/fhir",
+			code:     200,
+			resp:     `{"type": "transaction-response", "resourceType": "Bundle"}`,
+			expected: true,
+		},
+		{
+			name:    "error",
+			baseUrl: "https://dummy-url/fhir",
+			code:    200,
+			resp: `{"type": "batch-response",
+					"entry": [
+					{
+					  "response": {
+						"status": "422",
+						"outcome": {
+						  "issue": [
+							{
+							  "severity": "error",
+							  "code": "not-supported",
+							  "diagnostics": "Unsupported method 'PATCH'.",
+							  "expression": [
+								"Bundle.entry[0].request.method"
+							  ]
+							}
+						  ],
+						  "resourceType": "OperationOutcome"
+						}
+					  }
+					}
+					], "resourceType": "Bundle"}`,
+			expected: false,
+		},
+	}
 
-	// set up mock
-	httpmock.ActivateNonDefault(client.rest.GetClient())
-	responder := httpmock.NewStringResponder(200, resp)
-	httpmock.RegisterResponder("POST", baseUrl, responder)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
 
-	b, _ := fhir.Bundle{Type: fhir.BundleTypeTransaction}.MarshalJSON()
+			client := NewClient(config.Fhir{Server: config.Server{BaseUrl: c.baseUrl}})
 
-	ok := client.Send(b)
+			// set up mock
+			httpmock.ActivateNonDefault(client.rest.GetClient())
+			responder := httpmock.NewStringResponder(200, c.resp)
+			httpmock.RegisterResponder("POST", c.baseUrl, responder)
 
-	assert.True(t, ok)
+			b, _ := fhir.Bundle{Type: fhir.BundleTypeTransaction}.MarshalJSON()
+
+			actual := client.Send(b)
+
+			assert.Equal(t, c.expected, actual)
+		})
+	}
+}
+
+func TestResponseSuccess(t *testing.T) {
+
+	cases := []struct {
+		name     string
+		response string
+		expected bool
+	}{
+		{
+			name:     "unprocessable",
+			response: `{"type": "batch-response", "entry": [{"response": {"status": "422"}}], "resourceType": "Bundle"}`,
+			expected: false,
+		},
+		{
+			name:     "empty",
+			response: `{"type": "batch-response", "entry": [], "resourceType": "Bundle"}`,
+			expected: true,
+		},
+		{
+			name:     "ok",
+			response: `{"type": "batch-response", "entry": [{"response": {"status": "200"}}], "resourceType": "Bundle"}`,
+			expected: true,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			actual := responseSuccess([]byte(c.response))
+
+			assert.Equal(t, actual, c.expected)
+		})
+	}
 }
