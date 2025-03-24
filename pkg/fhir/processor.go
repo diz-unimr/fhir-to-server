@@ -23,7 +23,7 @@ func NewProcessor(config config.Fhir) *Processor {
 
 func (p *Processor) ProcessMessage(msg *kafka.Message) bool {
 
-	if msg.Value == nil || len(msg.Value) == 0 {
+	if len(msg.Value) == 0 {
 		// tombstone record
 		log.Warn().
 			Str("topic", *msg.TopicPartition.Topic).

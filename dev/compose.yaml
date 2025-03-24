@@ -46,9 +46,9 @@ services:
   fhir-server:
     image: samply/blaze:0.18
     environment:
-      BASE_URL: "http://localhost"
+      BASE_URL: "http://localhost:8080"
       JAVA_TOOL_OPTIONS: "-Xmx4g"
       LOG_LEVEL: debug
       ENFORCE_REFERENTIAL_INTEGRITY: "false"
     ports:
-      - "80:8080"
+      - "8080:8080"
