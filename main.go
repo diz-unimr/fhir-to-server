@@ -176,7 +176,7 @@ func subscribe(config config.AppConfig, topic string) *kafka.Consumer {
 	})
 
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("Unable to connect to Kafka")
 	}
 
 	err = consumer.Subscribe(topic, nil)
