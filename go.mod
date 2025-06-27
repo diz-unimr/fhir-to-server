@@ -5,7 +5,7 @@ go 1.24.1
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
 	github.com/go-resty/resty/v2 v2.16.5
-	github.com/go-viper/mapstructure/v2 v2.2.1
+	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/rs/zerolog v1.34.0
 	github.com/samply/golang-fhir-models/fhir-models v0.3.2
