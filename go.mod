@@ -1,6 +1,6 @@
 module fhir-to-server
 
-go 1.25.5
+go 1.25.9
 
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.14.1
