@@ -46,7 +46,7 @@ jobs:
         id: ml
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter/flavors/cupcake@93700f8c21c59ea784a32abe23896e49e54463b8 # v6.22.2
+        uses: oxsecurity/megalinter/flavors/cupcake@8fbdead70d1409964ab3d5afa885e18ee85388bb # v9.4.0
         env:
           # remove when megalinter container is using go 1.22
           GOTOOLCHAIN: "go1.23.0+auto"
