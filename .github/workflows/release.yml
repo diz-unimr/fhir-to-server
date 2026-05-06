@@ -3,7 +3,8 @@ name: release
 
 on:
   workflow_dispatch:
-  workflow_call:
+  # zizmor: ignore[dangerous-triggers]
+  workflow_run:
     workflows: ["build & test"]
     branches: main
     types: [completed]
