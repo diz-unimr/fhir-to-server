@@ -4,15 +4,17 @@ import (
 	"errors"
 	"fhir-to-server/pkg/config"
 	"fhir-to-server/pkg/fhir"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -28,6 +30,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	for i, topic := range appConfig.Kafka.InputTopics {
+		topic = strings.TrimSpace(topic)
 		wg.Add(1)
 		clientId := strconv.Itoa(i + 1)
 
@@ -52,6 +55,7 @@ func main() {
 						Msg("Consumer shut down gracefully")
 					return
 				default:
+					// TODO poll to handle 'OffsetsCommitted' event
 					msg, err := consumer.ReadMessage(1 * time.Second)
 					if err == nil {
 
