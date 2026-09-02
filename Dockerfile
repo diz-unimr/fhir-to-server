@@ -1,4 +1,4 @@
-FROM golang:1.25.9-alpine3.23 AS build
+FROM golang:1.27.1-alpine3.23 AS build
 
 RUN set -ex && \
     apk add --no-progress --no-cache \
@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 RUN go get -d -v && GOOS=linux GOARCH=amd64 go build -v -tags musl
 
-FROM alpine:3.23 as run
+FROM alpine:3.24 as run
 
 RUN apk add --no-progress --no-cache tzdata
 
